@@ -114,11 +114,14 @@ def main():
     print(f"  iPhone  erase: #{I_ERASE}")
 
     # ── Build the single DFU erase identity ──────────────────────────
-    bi = copy.deepcopy(C[PROD])
+    # Base from vphone600ap (iPhone99,11) — its device tree sets the MKB
+    # device-type flag (dt=1) needed for keybag-less boot.
+    # ApBoardID stays 0x90 to match the DFU hardware (vresearch101 AVPBooter).
+    bi = copy.deepcopy(C[VP_PROD])
     bi["Manifest"] = {}
-    bi["Ap,ProductType"]   = "ComputeModule14,2"
-    bi["Ap,Target"]        = "VRESEARCH101AP"
-    bi["Ap,TargetType"]    = "vresearch101"
+    bi["Ap,ProductType"]   = "iPhone99,11"
+    bi["Ap,Target"]        = "VPHONE600AP"
+    bi["Ap,TargetType"]    = "vphone600"
     bi["ApBoardID"]        = "0x90"
     bi["ApChipID"]         = "0xFE01"
     bi["ApSecurityDomain"] = "0x01"
@@ -160,9 +163,10 @@ def main():
     # Research TXM — patched by patch_firmware.py (txm.iphoneos.research.im4p)
     m["Ap,TrustedExecutionMonitor"]        = entry(C, RES,  "Ap,TrustedExecutionMonitor")
 
-    # ── Device tree & SEP ────────────────────────────────────────────
-    m["DeviceTree"]        = entry(C, PROD, "DeviceTree")
-    m["RestoreDeviceTree"] = entry(C, PROD, "RestoreDeviceTree")
+    # ── Device tree (vphone600ap — sets dt=1 for keybag-less boot) ───
+    m["DeviceTree"]        = entry(C, VP_PROD, "DeviceTree")
+    m["RestoreDeviceTree"] = entry(C, VP_PROD, "RestoreDeviceTree")
+    # ── SEP (shared across board configs) ─────────────────────────
     m["SEP"]               = entry(C, PROD, "SEP")
     m["RestoreSEP"]        = entry(C, PROD, "RestoreSEP")
 
