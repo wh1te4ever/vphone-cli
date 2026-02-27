@@ -80,6 +80,10 @@ done
 
 cp ${CLOUDOS_DIR}/Firmware/*.im4p "$IPHONE_DIR/Firmware"/
 
+# CloudOS ramdisk DMGs and trustcaches (RestoreRamDisk / RestoreTrustCache)
+cp -n ${CLOUDOS_DIR}/*.dmg "$IPHONE_DIR"/ 2>/dev/null || true
+cp -n ${CLOUDOS_DIR}/Firmware/*.dmg.trustcache "$IPHONE_DIR/Firmware"/ 2>/dev/null || true
+
 # ── Preserve original iPhone BuildManifest (cfw_install.sh reads Cryptex paths) ──
 cp "$IPHONE_DIR/BuildManifest.plist" "$IPHONE_DIR/BuildManifest-iPhone.plist"
 

@@ -22,6 +22,7 @@ Prerequisites:
 import gzip
 import glob
 import os
+import plistlib
 import shutil
 import struct
 import subprocess
@@ -241,7 +242,12 @@ def patch_ibec_bootargs(data):
 
 def build_ramdisk(restore_dir, im4m_path, vm_dir, input_dir, output_dir, temp_dir):
     """Build custom SSH ramdisk from restore DMG."""
-    ramdisk_src = find_file(restore_dir, ["043-53775-129.dmg"], "ramdisk DMG")
+    # Read RestoreRamDisk path dynamically from BuildManifest.plist
+    bm_path = os.path.join(restore_dir, "BuildManifest.plist")
+    with open(bm_path, "rb") as f:
+        bm = plistlib.load(f)
+    ramdisk_rel = bm["BuildIdentities"][0]["Manifest"]["RestoreRamDisk"]["Info"]["Path"]
+    ramdisk_src = os.path.join(restore_dir, ramdisk_rel)
     mountpoint = os.path.join(vm_dir, "SSHRD")
     ramdisk_raw = os.path.join(temp_dir, "ramdisk.raw.dmg")
     ramdisk_custom = os.path.join(temp_dir, "ramdisk1.dmg")
