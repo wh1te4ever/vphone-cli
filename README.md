@@ -104,6 +104,29 @@ Run `make help` for the full list. Key targets:
 | `cfw_install` | Install CFW mods |
 | `clean` | Remove build artifacts |
 
+## FAQ
+
+> **Before anything else — run `git pull` to make sure you have the latest version.**
+
+**Q: I get `zsh: killed ./vphone-cli` when trying to run it.**
+
+AMFI is not disabled. Set the boot-arg and restart:
+
+```bash
+sudo nvram boot-args="amfi_get_out_of_my_way=1 -v"
+```
+
+**Q: Can I update to a newer iOS version?**
+
+Yes. Override `fw_prepare` with the IPSW URL for the version you want:
+
+```bash
+IPHONE_SOURCE="https://updates.cdn-apple.com/.../iPhone17,3_XX.X_Restore.ipsw" make fw_prepare
+make fw_patch
+```
+
+Our patches are applied via binary analysis, not static offsets, so newer versions should work. If something breaks, ask AI for help.
+
 ## Acknowledgements
 
 - [wh1te4ever/super-tart-vphone-writeup](https://github.com/wh1te4ever/super-tart-vphone-writeup)
