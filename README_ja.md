@@ -159,18 +159,18 @@ iproxy 5910 5910     # RPC
 
 完全なリストは `make help` を実行してください。主なターゲット：
 
-| ターゲット              | 説明                  |
+| ターゲット            | 説明                          |
 | ------------------- | ---------------------------- |
-| `build`             | vphone-cliのビルド + 署名      |
-| `vm_new`            | VMディレクトリの作成          |
-| `fw_prepare`        | IPSWのダウンロード/マージ         |
-| `fw_patch`          | ブートチェーンのパッチ当て             |
-| `boot` / `boot_dfu` | VMの起動 (GUI / DFU ヘッドレス) |
-| `restore_get_shsh`  | SHSH blobの取得              |
-| `restore`           | ファームウェアのフラッシュ               |
-| `ramdisk_build`     | SSHラムディスクのビルド            |
-| `ramdisk_send`      | ラムディスクの送信       |
-| `cfw_install`       | CFW modのインストール             |
+| `build`             | vphone-cli のビルド + 署名      |
+| `vm_new`            | VM ディレクトリの作成            |
+| `fw_prepare`        | IPSW のダウンロード/マージ       |
+| `fw_patch`          | ブートチェーンのパッチ当て         |
+| `boot` / `boot_dfu` | VMの起動 (GUI / DFU ヘッドレス)  |
+| `restore_get_shsh`  | SHSH blobの取得                |
+| `restore`           | ファームウェアのフラッシュ         |
+| `ramdisk_build`     | SSH Ramdisk のビルド           |
+| `ramdisk_send`      | Ramdisk の送信                 |
+| `cfw_install`       | CFW のインストール              |
 | `clean`             | ビルドアーティファクトの削除       |
 
 ## よくある質問 (FAQ)
