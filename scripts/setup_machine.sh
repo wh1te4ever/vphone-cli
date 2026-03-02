@@ -27,7 +27,7 @@ BOOT_FIFO_FD=""
 
 VM_DIR="${VM_DIR:-vm}"
 VM_DIR_ABS="${VM_DIR:A}"
-AUTO_KILL_VM_LOCKS="${AUTO_KILL_VM_LOCKS:-0}"
+AUTO_KILL_VM_LOCKS="${AUTO_KILL_VM_LOCKS:-1}"
 POST_RESTORE_KILL_DELAY="${POST_RESTORE_KILL_DELAY:-30}"
 POST_KILL_SETTLE_DELAY="${POST_KILL_SETTLE_DELAY:-5}"
 JB_MODE=0
@@ -120,6 +120,23 @@ kill_descendants() {
   local -a descendants
   descendants=("${(@f)$(list_descendants "$1")}")
   [[ ${#descendants[@]} -gt 0 ]] && kill -9 "${descendants[@]}" >/dev/null 2>&1 || true
+}
+
+force_release_vm_locks() {
+  local -a lock_pids
+  local pid
+
+  lock_pids=(${(@f)$(collect_vm_lock_pids)})
+  (( ${#lock_pids[@]} == 0 )) && return
+
+  echo "[*] Releasing lingering VM lock holders..."
+  for pid in "${lock_pids[@]}"; do
+    [[ -z "$pid" || "$pid" == "$$" ]] && continue
+    kill_descendants "$pid"
+    kill -9 "$pid" >/dev/null 2>&1 || true
+  done
+
+  sleep 1
 }
 
 cleanup() {
@@ -279,6 +296,7 @@ stop_boot_dfu() {
     wait "$DFU_PID" 2>/dev/null || true
   fi
   DFU_PID=""
+  force_release_vm_locks
 }
 
 wait_for_post_restore_reboot() {
@@ -327,8 +345,21 @@ wait_for_recovery() {
 
 start_iproxy_2222() {
   local iproxy_bin
+  local -a stale_pids
+  local pid
   iproxy_bin="${PROJECT_ROOT}/.limd/bin/iproxy"
   [[ -x "$iproxy_bin" ]] || die "iproxy not found at $iproxy_bin (run: make setup_libimobiledevice)"
+
+  stale_pids=(${(@f)$(lsof -n -t -iTCP:2222 -sTCP:LISTEN 2>/dev/null || true)})
+  if (( ${#stale_pids[@]} > 0 )); then
+    echo "[*] Found stale listener(s) on tcp/2222, terminating..."
+    for pid in "${stale_pids[@]}"; do
+      [[ -z "$pid" || "$pid" == "$$" ]] && continue
+      kill_descendants "$pid"
+      kill -9 "$pid" >/dev/null 2>&1 || true
+    done
+    sleep 1
+  fi
 
   mkdir -p "$LOG_DIR"
   : > "$IPROXY_LOG"
