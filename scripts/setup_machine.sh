@@ -30,6 +30,11 @@ VM_DIR_ABS="${VM_DIR:A}"
 AUTO_KILL_VM_LOCKS="${AUTO_KILL_VM_LOCKS:-1}"
 POST_RESTORE_KILL_DELAY="${POST_RESTORE_KILL_DELAY:-30}"
 POST_KILL_SETTLE_DELAY="${POST_KILL_SETTLE_DELAY:-5}"
+RAMDISK_SSH_TIMEOUT="${RAMDISK_SSH_TIMEOUT:-60}"
+RAMDISK_SSH_INTERVAL="${RAMDISK_SSH_INTERVAL:-2}"
+RAMDISK_SSH_PORT="${RAMDISK_SSH_PORT:-2222}"
+RAMDISK_SSH_USER="${RAMDISK_SSH_USER:-root}"
+RAMDISK_SSH_PASS="${RAMDISK_SSH_PASS:-alpine}"
 JB_MODE=0
 SKIP_PROJECT_SETUP=0
 
@@ -378,6 +383,49 @@ start_iproxy_2222() {
   echo "[+] iproxy running (pid=$IPROXY_PID, log=$IPROXY_LOG)"
 }
 
+wait_for_ramdisk_ssh() {
+  local sshpass_bin
+  local waited=0
+
+  [[ "$RAMDISK_SSH_TIMEOUT" == <-> ]] || die "RAMDISK_SSH_TIMEOUT must be an integer (seconds)"
+  [[ "$RAMDISK_SSH_INTERVAL" == <-> ]] || die "RAMDISK_SSH_INTERVAL must be an integer (seconds)"
+  (( RAMDISK_SSH_TIMEOUT > 0 )) || die "RAMDISK_SSH_TIMEOUT must be > 0"
+  (( RAMDISK_SSH_INTERVAL > 0 )) || die "RAMDISK_SSH_INTERVAL must be > 0"
+
+  sshpass_bin="$(command -v sshpass || true)"
+  [[ -x "$sshpass_bin" ]] || die "sshpass not found (run: make setup_tools)"
+
+  echo "[*] Waiting for ramdisk SSH on ${RAMDISK_SSH_USER}@127.0.0.1:${RAMDISK_SSH_PORT} (timeout=${RAMDISK_SSH_TIMEOUT}s)..."
+  while (( waited < RAMDISK_SSH_TIMEOUT )); do
+    if "$sshpass_bin" -p "$RAMDISK_SSH_PASS" ssh \
+      -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null \
+      -o PreferredAuthentications=password \
+      -o ConnectTimeout=5 \
+      -q \
+      -p "$RAMDISK_SSH_PORT" \
+      "${RAMDISK_SSH_USER}@127.0.0.1" "echo ready" >/dev/null 2>&1
+    then
+      echo "[+] Ramdisk SSH is ready"
+      return
+    fi
+
+    if (( waited == 0 || waited % 10 == 0 )); then
+      echo "  waiting... ${waited}s elapsed"
+    fi
+
+    sleep "$RAMDISK_SSH_INTERVAL"
+    (( waited += RAMDISK_SSH_INTERVAL ))
+  done
+
+  echo "[-] Timed out waiting for ramdisk SSH readiness."
+  echo "[-] iproxy log tail:"
+  tail -n 40 "$IPROXY_LOG" 2>/dev/null || true
+  echo "[-] boot_dfu log tail:"
+  tail -n 60 "$DFU_LOG" 2>/dev/null || true
+  die "Ramdisk SSH did not become ready in ${RAMDISK_SSH_TIMEOUT}s."
+}
+
 stop_iproxy_2222() {
   if [[ -n "$IPROXY_PID" ]] && kill -0 "$IPROXY_PID" 2>/dev/null; then
     echo "[*] Stopping iproxy (pid=$IPROXY_PID)..."
@@ -464,7 +512,7 @@ main() {
   run_make "Ramdisk" ramdisk_send
   start_iproxy_2222
 
-  sleep 10 # for some reason there is a statistical faiure here if not enough time is given to initialization
+  wait_for_ramdisk_ssh
 
   run_make "CFW install" "$cfw_install_target"
   stop_boot_dfu
